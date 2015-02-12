@@ -36,23 +36,89 @@ class Model;
 class Index
 {
 public:
+    /**
+     * \brief Creates an invalid index
+     */
     constexpr Index() = default;
+
+    /**
+     * \brief Row relative to parent()
+     *
+     * If the index is invalid, it will report -1
+     */
+
     constexpr int row() const { return row_; }
+
+    /**
+     * \brief Column relative to parent()
+     *
+     * If the index is invalid, it will report -1
+     */
     constexpr int column() const { return column_; }
+
+    /**
+     * \brief Model this index belongs to
+     */
     constexpr const Model* model() const { return model_; }
+
+    /**
+     * \brief Internal ID representing the physical item
+     * \note Shouldn't be used outside of model classes
+     */
     constexpr quintptr internalId() const { return id_; }
+
+    /**
+     * \brief Internal pointer to the physical item
+     * \note Shouldn't be used outside of model classes
+     */
     void* internalPointer() const { return reinterpret_cast<void*>(id_); }
+
+    /**
+     * \brief Internal pointer to the physical item
+     * \note Shouldn't be used outside of model classes
+     */
     template<class T>
         T* internalPointer() const { return reinterpret_cast<T*>(id_); }
 
+    /**
+     * \brief Index to the parent item
+     */
     inline Index parent() const;
+
+    /**
+     * \brief A child of the same parent
+     */
     inline Index sibling(int row, int column) const;
+
+    /**
+     * \brief A child of the current index
+     */
     inline Index child(int row, int column) const;
+
+    /**
+     * \brief Data of the item at this index
+     */
     inline QVariant data(int role = Value) const;
+
+    /**
+     * \brief Number of child rows
+     */
     inline int rowCount() const;
+
+    /**
+     * \brief Number of child columns
+     */
     inline int columnCount() const;
+
+    /**
+     * \brief Whether it belongs to a model and points to an actual item
+     * \note Some operations might render invalid indexes that are reported to be valid
+     */
     inline bool valid() const;
 
+    /**
+     * \brief Compares two indices
+     */
     constexpr bool operator==(const Index& rhs) const
     {
         return row_ == rhs.row_ && column_ == rhs.column_ &&
@@ -67,6 +133,9 @@ public:
 private:
     friend class Model;
 
+    /**
+     * \brief Creates a possibly valid index
+     */
     constexpr Index(int row, int column, quintptr id, const Model* model)
         : row_(row), column_(column), id_(id), model_(model)
     {}
