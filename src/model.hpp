@@ -146,12 +146,17 @@ private:
     const Model* model_ = nullptr;
 };
 
-
+/**
+ * \brief Base class for index models
+ */
 class Model : public QObject
 {
     Q_OBJECT
 
 private:
+    /**
+     * \brief Used to keep track of move rows/columns
+     */
     enum Moving
     {
         Nothing,
@@ -162,26 +167,41 @@ private:
 public:
     virtual ~Model(){}
 
+    /**
+     * \brief Number of rows at the given parent
+     */
     int rowCount(const Index& parent = {}) const
     {
         return onRowCount(parent);
     }
 
+    /**
+     * \brief Number of columns at the given parent
+     */
     int columnCount(const Index& parent = {}) const
     {
         return onColumnCount(parent);
     }
 
+    /**
+     * \brief Whether a row is a valid child of parent
+     */
     bool validRow(int row, const Index& parent) const
     {
         return row >= 0 && row <= rowCount(parent);
     }
 
+    /**
+     * \brief Whether a column is a valid child of parent
+     */
     bool validColumn(int column, const Index& parent) const
     {
         return column >= 0 && column <= columnCount(parent);
     }
 
+    /**
+     * \brief Whether an index is valid
+     */
     bool valid(const Index& index) const
     {
         auto par = parent(index);
@@ -191,11 +211,17 @@ public:
                onValid(index);
     }
 
+    /**
+     * \brief Returns an invalid index that belongs to the model
+     */
     Index root() const
     {
         return onRoot();
     }
 
+    /**
+     * \brief Retuens a valid model index if the parameters are correct
+     */
     Index index(int row, int column, const Index& parent = {}) const
     {
         if ( validRow(row, parent) && validColumn(column, parent) )
@@ -203,6 +229,11 @@ public:
         return {};
     }
 
+    /**
+     * \brief Returns the data associated with the item index for the given role
+     * \returns An empty variant if the index or role are invalid or don't
+     *          have any data to report
+     */
     QVariant data(const Index& index, int role = Value) const
     {
         if ( !valid(index) )
@@ -210,6 +241,12 @@ public:
         return onData(index, role);
     }
 
+    /**
+     * \brief Sets data for the item
+     * \returns \b true on success
+     *
+     * Emits dataChanged() on success.
+     */
     bool setData(const Index& index, const QVariant& value, int role = Value)
     {
         if ( valid(index) && onSetData(index, value, role) )
@@ -217,8 +254,12 @@ public:
             emit dataChanged(index, value, role);
             return true;
         }
+        return false;
     }
 
+    /**
+     * \brief Returns the parent for that index
+     */
     Index parent(const Index& index) const
     {
         if ( !valid(index) )
@@ -226,11 +267,22 @@ public:
         return onParent(index);
     }
 
+    /**
+     * \brief Removes a single row
+     * \see removeRows
+     */
     bool removeRow(int row, const Index& parent = {})
     {
         return removeRows(row, 1, parent);
     }
 
+    /**
+     * \brief Removes some rows
+     * \returns \b true on success
+     *
+     * Emits rowsRemoved() on success when this
+     * isn't being done while moving rows.
+     */
     bool removeRows(int row, int count, const Index& parent = {})
     {
         if ( count > 0 && validRow(row, parent) && validRow(row+count-1, parent)
@@ -243,11 +295,22 @@ public:
         return false;
     }
 
+    /**
+     * \brief Removes a single column
+     * \see removeColumns
+     */
     bool removeColumn(int column, const Index& parent = {})
     {
         return removeColumns(column, 1, parent);
     }
 
+    /**
+     * \brief Removes some columns
+     * \returns \b true on success
+     *
+     * Emits columnsRemoved() on success when this
+     * isn't being done while moving column.
+     */
     bool removeColumns(int column, int count, const Index& parent = {})
     {
         if ( count > 0 && validColumn(column, parent) &&
@@ -261,12 +324,22 @@ public:
         return false;
     }
 
+    /**
+     * \brief Moves a single row
+     * \see moveRows
+     */
     bool moveRow(const Index& from_parent, int from_row,
                  const Index& to_parent,   int to_row)
     {
         return moveRows(from_parent, from_row, 1, to_parent, to_row);
     }
 
+    /**
+     * \brief Moves some rows
+     * \returns \b true on success
+     *
+     * Emits rowsMoved() on success.
+     */
     bool moveRows(const Index& from_parent, int from_row, int count,
                  const Index& to_parent, int to_row)
     {
@@ -280,12 +353,23 @@ public:
         return false;
     }
 
+    /**
+     * \brief Moves a single column
+     * \see moveColumns
+     */
     bool moveColumn(const Index& from_parent, int from_column,
                     const Index& to_parent,   int to_column)
     {
         return moveColumns(from_parent, from_column, 1, to_parent, to_column);
     }
 
+
+    /**
+     * \brief Moves some columns
+     * \returns \b true on success
+     *
+     * Emits columnsMoved() on success.
+     */
     bool moveColumns(const Index& from_parent, int from_column, int count,
                      const Index& to_parent, int to_column)
     {
@@ -301,74 +385,176 @@ public:
 
 protected:
 
+    /**
+     * \brief Extra checks for the validity of \p index
+     * \param index An index that is contained by the model
+     *              and has valid row and column numbers
+     */
     virtual bool onValid(const Index& index) const
     {
         return true;
     }
 
+    /**
+     * \brief Used to create an invalid index that represents the root
+     */
     virtual Index onRoot() const
     {
         return createIndex(-1, -1, 0);
     }
 
+    /**
+     * \brief Used when an index is being requested
+     * \param row       A valid row in \p parent
+     * \param column    A valid column in \p parent
+     * \param parent    Should be the result of parent(index) on the returned index
+     * \return An index created by createIndex() or an invalid index
+     */
     virtual Index onIndex(int row, int column, const Index& parent) const
     {
         return createIndex(row, column, 0);
     }
 
+    /**
+     * \brief Set the data to its destination
+     * \param index A valid index in the model
+     */
     virtual bool onSetData(const Index& index, const QVariant& value, int role)
     {
         return false;
     }
 
+    /**
+     * \brief Return the data associated with the index
+     * \param index A valid index
+     */
     virtual QVariant onData(const Index& index, int role) const = 0;
 
+    /**
+     * \brief Number of rows in \p parent
+     *
+     * If \p parent is invalid, this should return the number of
+     * top-level rows in the model
+     */
     virtual int onRowCount(const Index& parent) const = 0;
+
+    /**
+     * \brief Number of columns in \p parent
+     *
+     * If \p parent is invalid, this should return the number of
+     * top-level columns in the model
+     */
     virtual int onColumnCount(const Index& parent) const = 0;
 
+    /**
+     * \brief Returns the parent of \p index
+     * \param index A valid index in the model
+     */
     virtual Index onParent(const Index& index) const
     {
         return {};
     }
 
+    /**
+     * \brief Removes some rows from the model
+     * \param row    A valid row in \p parent
+     * \param count  Number of rows, already checked that they are all valid in \p parent
+     * \param parent Parent index to remove from
+     */
     virtual bool onRemoveRows(int row, int count, const Index& parent)
     {
         return false;
     }
 
+    /**
+     * \brief Removes some columns from the model
+     * \param column A valid column in \p parent
+     * \param count  Number of columns, already checked that they are all valid in \p parent
+     * \param parent Parent index to remove from
+     */
     virtual bool onRemoveColumns(int column, int count, const Index& parent)
     {
         return false;
     }
 
+    /**
+     * \brief Move some rows
+     * \param from_parent   Parent containing the rows to be moved (may be invalid)
+     * \param row           A valid row in \p from_parent
+     * \param count         Number of rows, already checked that they are
+     *                      all valid in \p from_parent
+     * \param to_parent     Destination parent (may be invalid)
+     * \param to_row        Destination row in \p to_parent (may be invalid)
+     * \note This is called by moveRows() between beginMoveRows() and
+     *       endMoveRows() which means rowsRemoved() and rowsAdded() won't
+     *       be emitted automatically during the execution of this function.
+     *       If some operation fails, this function must ensure that the
+     *       model is back to the stating state or that the signals representing
+     *       the operations that have been successful have been emitted.
+     * \return \b true on success
+     */
     virtual bool onMoveRows(const Index& from_parent, int from_row, int count,
                             const Index& to_parent, int to_row)
     {
         return false;
     }
 
+    /**
+     * \brief Move some columns
+     * \param from_parent   Parent containing the columns to be moved (may be invalid)
+     * \param column        A valid column in \p from_parent
+     * \param count         Number of columns, already checked that they are
+     *                      all valid in \p from_parent
+     * \param to_parent     Destination parent (may be invalid)
+     * \param to_column     Destination column in \p to_parent (may be invalid)
+     * \note This is called by moveColumn() between beginMoveRows() and
+     *       endMoveColumns() which means ColumnsRemoved() and rowsAdded() won't
+     *       be emitted automatically during the execution of this function.
+     *       If some operation fails, this function must ensure that the
+     *       model is back to the stating state or that the signals representing
+     *       the operations that have been successful have been emitted.
+     * \return \b true on success
+     */
     virtual bool onMoveColumns(const Index& from_parent, int from_column,
                                int count, const Index& to_parent, int to_column)
     {
         return false;
     }
 
+    /**
+     * \brief Creates an index belonging to this model
+     */
     Index createIndex(int row, int column, quintptr id) const
     {
         return Index(row, column, id, this);
     }
 
+    /**
+     * \brief Creates an index belonging to this model
+     */
     template<class T>
         Index createIndex(int row, int column, T* data) const
         {
             return Index(row, column, reinterpret_cast<quintptr>(data), this);
         }
 
+    /**
+     * \brief Begins a move operation
+     *
+     * This will inhibit the automatic emission of rowsRemoved() and
+     * rowsAdded() so that a move can be seen as a single operation
+     */
     void beginMoveRows()
     {
         moving_ |= Rows;
     }
 
+    /**
+     * \brief Ends a move operation
+     *
+     * This will restore the automatic emission of rowsRemoved() and
+     * rowsAdded(). If \p ok is \b true, it will emit rowsMoved()
+     */
     void endMoveRows(bool ok, const Index& from_parent, int from_row, int count,
                      const Index& to_parent, int to_row)
     {
@@ -377,11 +563,23 @@ protected:
             emit rowsMoved(from_parent, from_row, count, to_parent, to_row);
     }
 
+    /**
+     * \brief Begins a move operation
+     *
+     * This will inhibit the automatic emission of columnsRemoved() and
+     * columnsAdded() so that a move can be seen as a single operation
+     */
     void beginMoveColumns()
     {
         moving_ |= Columns;
     }
 
+    /**
+     * \brief Ends a move operation
+     *
+     * This will restore the automatic emission of columnsRemoved() and
+     * columnsAdded(). If \p ok is \b true, it will emit columnsMoved()
+     */
     void endMoveColumns(bool ok, const Index& from_parent, int from_column,
                         int count, const Index& to_parent, int to_column)
     {
@@ -393,7 +591,9 @@ protected:
 signals:
     void dataChanged(const Index& index, const QVariant& value, int role);
     void rowsRemoved(int row, int count, const Index& parent);
+    void rowsAdded(int row, int count, const Index& parent);
     void columnsRemoved(int column, int count, const Index& parent);
+    void columnsAdded(int row, int count, const Index& parent);
     void rowsMoved(const Index& from_parent, int from_row, int count, const Index& to_parent, int to_row);
     void columnsMoved(const Index& from_parent, int from_column, int count, const Index& to_parent, int to_column);
 
